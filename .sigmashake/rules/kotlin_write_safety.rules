@@ -6,11 +6,10 @@ rule no-force-non-null-kotlin {
   enabled true
   priority 85
   severity warning
-  ASK write
+  LOG write
   IF path GLOB "**/*.kt" AND content LINE_REGEX "[^!]!![^!=]"
   OR path GLOB "**/*.kts" AND content LINE_REGEX "[^!]!![^!=]"
   MESSAGE "The !! operator throws NullPointerException on null — the exact problem Kotlin's type system prevents. Use safe calls (?.), let{}, or provide a default with ?:"
-  PROMPT "Can this !! assertion be replaced with a safe call (?.) or null-coalescing operator (?:)? NPEs in production indicate unhandled null state."
 }
 
 rule no-sql-concat-kotlin {
@@ -38,41 +37,37 @@ rule no-runtime-exec-kotlin {
   enabled true
   priority 95
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.kt" AND content LINE_REGEX "Runtime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\("
   OR path GLOB "**/*.kt" AND content LINE_REGEX "ProcessBuilder\\s*\\(.*\\$\\{"
   MESSAGE "Runtime.exec() or ProcessBuilder with string interpolation enables command injection. Build command arguments as a list — never concatenate user input into a command string."
-  PROMPT "Is the command argument built from user input? Pass arguments as a List<String> to ProcessBuilder rather than a single interpolated string."
 }
 
 rule no-hardcoded-secrets-kotlin {
   enabled true
   priority 90
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.kt" AND content LINE_REGEX "val\\s+(password|apiKey|api_key|secret|token|clientSecret)\\s*=\\s*\"[^\"]{8,}\""
   OR path GLOB "**/*.kts" AND content LINE_REGEX "(password|apiKey|secret|token)\\s*=\\s*\"[^\"]{8,}\""
   MESSAGE "Hardcoded credentials in Kotlin source are embedded in the APK/JAR. Store secrets in environment variables, BuildConfig fields from a gitignored local.properties, or a secrets manager."
-  PROMPT "Is this a real credential? Move it to local.properties (gitignored) and read via BuildConfig, or use System.getenv() in server-side code."
 }
 
 rule no-unchecked-cast-kotlin {
   enabled true
   priority 75
   severity warning
-  ASK write
+  LOG write
   IF path GLOB "**/*.kt" AND content LINE_REGEX "as\\s+[A-Z][a-zA-Z<>]+" AND content NOT CONTAINS "as?"
   MESSAGE "Unchecked casts (as) throw ClassCastException if the type doesn't match. Use safe casts (as?) which return null on mismatch, then handle the null case explicitly."
-  PROMPT "Can this cast be changed to a safe cast (as?) with a null check? Unchecked casts cause runtime crashes."
 }
 
 rule no-cleartext-http-kotlin {
   enabled true
   priority 85
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.kt" AND content CONTAINS "\"http:" AND content NOT CONTAINS "localhost" AND content NOT CONTAINS "127.0.0.1"
   OR path GLOB "**/AndroidManifest.xml" AND content CONTAINS "cleartextTrafficPermitted=\"true\""
   MESSAGE "Cleartext HTTP transmits data without encryption — vulnerable to interception. Use HTTPS for all network communication. For Android, do not set cleartextTrafficPermitted."
-  PROMPT "Is this http:// URL used in production? If so, switch to https://, or if it must be http:// for a test environment, document why."
 }
